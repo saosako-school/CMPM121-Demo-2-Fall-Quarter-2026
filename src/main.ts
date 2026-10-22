@@ -99,6 +99,10 @@ redoButton.addEventListener("click", () => {
 });
 
 canvas.addEventListener("mousedown", (mouse) => {
+  linesData.redoLines.splice(
+    0,
+    linesData.redoLines.length,
+  );
   cursorData.x = mouse.offsetX;
   cursorData.y = mouse.offsetY;
   currentLine = {
