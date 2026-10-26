@@ -60,7 +60,49 @@ const linesData: LinesData = {
 
 let currentLine: Line | null = null;
 
+function drawLine(
+  context: CanvasRenderingContext2D,
+  line: Line,
+) {
+  context.moveTo(line.points[0].x, line.points[0].y);
+  for (let i = 0; i < line.points.length - 1; ++i) {
+    context.beginPath();
+    context.moveTo(line.points[i].x, line.points[i].y);
+    context.lineTo(line.points[i + 1].x, line.points[i + 1].y);
+    context.stroke();
+  }
+}
+
+function redrawCanvas(
+  context: CanvasRenderingContext2D,
+  canvasElement: HTMLCanvasElement,
+  linesInfo: LinesData,
+) {
+  context.clearRect(0, 0, canvasElement.width, canvasElement.height);
+  for (const line of linesInfo.lines) {
+    drawLine(context, line);
+  }
+}
+
+undoButton.addEventListener("click", () => {
+  if (linesData.lines.length > 0) {
+    linesData.redoLines.push(linesData.lines.pop()!);
+  }
+  redrawCanvas(ctx, canvas, linesData);
+});
+
+redoButton.addEventListener("click", () => {
+  if (linesData.redoLines.length > 0) {
+    linesData.lines.push(linesData.redoLines.pop()!);
+  }
+  redrawCanvas(ctx, canvas, linesData);
+});
+
 canvas.addEventListener("mousedown", (mouse) => {
+  linesData.redoLines.splice(
+    0,
+    linesData.redoLines.length,
+  );
   cursorData.x = mouse.offsetX;
   cursorData.y = mouse.offsetY;
   currentLine = {
