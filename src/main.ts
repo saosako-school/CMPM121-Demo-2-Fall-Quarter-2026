@@ -14,12 +14,19 @@ app.append(canvas);
 
 const ctx = canvas.getContext("2d")!;
 
-interface CursorData {
+interface Point {
   x: number;
   y: number;
+}
+
+interface CursorData {
+  position: Point;
   down: boolean;
 }
-const cursorData: CursorData = { x: 0, y: 0, down: false };
+const cursorData: CursorData = {
+  position: { x: 0, y: 0 },
+  down: false,
+};
 
 interface Tool {
   drawFunction: (points: Point[], context: CanvasRenderingContext2D) => void;
@@ -40,11 +47,6 @@ function drawLine(
     context.lineTo(points[i + 1].x, points[i + 1].y);
     context.stroke();
   }
-}
-
-interface Point {
-  x: number;
-  y: number;
 }
 
 interface Command {
@@ -92,6 +94,48 @@ function redoCommand(commandInfo: CommandData) {
   redrawCanvas(ctx, canvas, commandInfo);
 }
 
+function handleMouseDown(cursorData: CursorData) {
+  commandData.undoneCommands.splice(0, commandData.undoneCommands.length);
+
+  activeCommand = {
+    tool: lineTool,
+    points: [],
+  };
+  activeCommand.points.push({
+    x: cursorData.position.x,
+    y: cursorData.position.y,
+  });
+  cursorData.down = true;
+}
+
+function handleMouseMove(cursorData: CursorData) {
+  if (!cursorData.down) {
+    return;
+  }
+
+  activeCommand!.points.push({
+    x: cursorData.position.x,
+    y: cursorData.position.y,
+  });
+
+  redrawCanvas(ctx, canvas, commandData, activeCommand);
+}
+
+function handleMouseUp(cursorData: CursorData) {
+  cursorData.down = false;
+  if (activeCommand) {
+    commandData.commands.push(activeCommand);
+    activeCommand = null;
+  }
+
+  redrawCanvas(ctx, canvas, commandData);
+}
+
+function updateCursorDataPosition(mouseEvent: MouseEvent) {
+  cursorData.position.x = mouseEvent.offsetX;
+  cursorData.position.y = mouseEvent.offsetY;
+}
+
 function setupButtons() {
   const buttonContainer = document.createElement("div");
   app.append(buttonContainer);
@@ -115,48 +159,21 @@ function setupButtons() {
 
 function setupCanvas() {
   canvas.addEventListener("mousedown", (mouseEvent) => {
-    commandData.undoneCommands.splice(0, commandData.undoneCommands.length);
-
-    cursorData.x = mouseEvent.offsetX;
-    cursorData.y = mouseEvent.offsetY;
-
-    activeCommand = {
-      tool: lineTool,
-      points: [],
-    };
-    activeCommand.points.push({ x: cursorData.x, y: cursorData.y });
-    cursorData.down = true;
+    updateCursorDataPosition(mouseEvent);
+    handleMouseDown(cursorData);
   });
 
   canvas.addEventListener("mousemove", (mouseEvent) => {
-    if (cursorData.down) {
-      cursorData.x = mouseEvent.offsetX;
-      cursorData.y = mouseEvent.offsetY;
-
-      activeCommand!.points.push({ x: cursorData.x, y: cursorData.y });
-
-      redrawCanvas(ctx, canvas, commandData, activeCommand);
-    }
+    updateCursorDataPosition(mouseEvent);
+    handleMouseMove(cursorData);
   });
 
   canvas.addEventListener("mouseout", () => {
-    cursorData.down = false;
-    if (activeCommand) {
-      commandData.commands.push(activeCommand);
-      activeCommand = null;
-    }
-
-    redrawCanvas(ctx, canvas, commandData);
+    handleMouseUp(cursorData);
   });
 
   canvas.addEventListener("mouseup", () => {
-    cursorData.down = false;
-    if (activeCommand) {
-      commandData.commands.push(activeCommand);
-      activeCommand = null;
-    }
-
-    redrawCanvas(ctx, canvas, commandData);
+    handleMouseUp(cursorData);
   });
 }
 
