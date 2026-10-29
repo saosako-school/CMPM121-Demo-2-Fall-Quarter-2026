@@ -14,17 +14,6 @@ app.append(canvas);
 
 const ctx = canvas.getContext("2d")!;
 
-const buttonContainer = document.createElement("div");
-app.append(buttonContainer);
-
-const undoButton = document.createElement("button");
-undoButton.textContent = "undo";
-app.append(undoButton);
-
-const redoButton = document.createElement("button");
-redoButton.textContent = "redo";
-app.append(redoButton);
-
 interface CursorData {
   x: number;
   y: number;
@@ -41,7 +30,6 @@ interface Line {
 }
 
 interface LinesData {
-  numLines: number;
   lines: Line[];
   redoLines: Line[];
 }
@@ -53,7 +41,6 @@ const cursorData: CursorData = {
 };
 
 const linesData: LinesData = {
-  numLines: 0,
   lines: [],
   redoLines: [],
 };
@@ -84,52 +71,80 @@ function redrawCanvas(
   }
 }
 
-undoButton.addEventListener("click", () => {
+function undoLine() {
   if (linesData.lines.length > 0) {
     linesData.redoLines.push(linesData.lines.pop()!);
   }
   redrawCanvas(ctx, canvas, linesData);
-});
+}
 
-redoButton.addEventListener("click", () => {
+function redoLine() {
   if (linesData.redoLines.length > 0) {
     linesData.lines.push(linesData.redoLines.pop()!);
   }
   redrawCanvas(ctx, canvas, linesData);
-});
+}
 
-canvas.addEventListener("mousedown", (mouse) => {
-  linesData.redoLines.splice(
-    0,
-    linesData.redoLines.length,
-  );
-  cursorData.x = mouse.offsetX;
-  cursorData.y = mouse.offsetY;
-  currentLine = {
-    points: [],
-  };
-  linesData.lines.push(currentLine);
-  currentLine.points.push({ x: cursorData.x, y: cursorData.y });
-  cursorData.down = true;
-});
-canvas.addEventListener("mousemove", (mouse) => {
-  if (cursorData.down) {
-    ctx.beginPath();
-    ctx.moveTo(cursorData.x, cursorData.y);
-    ctx.lineTo(mouse.offsetX, mouse.offsetY);
-    ctx.stroke();
+function setupButtons() {
+  const buttonContainer = document.createElement("div");
+  app.append(buttonContainer);
+
+  const undoButton = document.createElement("button");
+  undoButton.textContent = "undo";
+  app.append(undoButton);
+
+  const redoButton = document.createElement("button");
+  redoButton.textContent = "redo";
+  app.append(redoButton);
+
+  undoButton.addEventListener("click", () => {
+    undoLine();
+  });
+
+  redoButton.addEventListener("click", () => {
+    redoLine();
+  });
+}
+
+function setupCanvas() {
+  canvas.addEventListener("mousedown", (mouse) => {
+    linesData.redoLines.splice(
+      0,
+      linesData.redoLines.length,
+    );
     cursorData.x = mouse.offsetX;
     cursorData.y = mouse.offsetY;
-    currentLine!.points.push({ x: cursorData.x, y: cursorData.y });
-  }
-});
-canvas.addEventListener("mouseout", () => {
-  cursorData.down = false;
-  currentLine = null;
-});
-canvas.addEventListener("mouseup", () => {
-  cursorData.down = false;
-  currentLine = null;
-});
+    currentLine = {
+      points: [],
+    };
+    linesData.lines.push(currentLine);
+    currentLine.points.push({ x: cursorData.x, y: cursorData.y });
+    cursorData.down = true;
+  });
+
+  canvas.addEventListener("mousemove", (mouse) => {
+    if (cursorData.down) {
+      ctx.beginPath();
+      ctx.moveTo(cursorData.x, cursorData.y);
+      ctx.lineTo(mouse.offsetX, mouse.offsetY);
+      ctx.stroke();
+      cursorData.x = mouse.offsetX;
+      cursorData.y = mouse.offsetY;
+      currentLine!.points.push({ x: cursorData.x, y: cursorData.y });
+    }
+  });
+
+  canvas.addEventListener("mouseout", () => {
+    cursorData.down = false;
+    currentLine = null;
+  });
+
+  canvas.addEventListener("mouseup", () => {
+    cursorData.down = false;
+    currentLine = null;
+  });
+}
 
 app.append(heading, message);
+setupButtons();
+setupCanvas();
