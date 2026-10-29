@@ -20,10 +20,12 @@ const cursorData: CursorData = {
 
 interface Tool {
   drawFunction: (points: Point[], context: CanvasRenderingContext2D) => void;
+  held: boolean;
 }
 
-const lineTool = {
+/*const lineTool: Tool = {
   drawFunction: drawLine,
+  held: true,
 };
 
 function drawLine(
@@ -35,6 +37,31 @@ function drawLine(
     context.beginPath();
     context.moveTo(points[i].x, points[i].y);
     context.lineTo(points[i + 1].x, points[i + 1].y);
+    context.stroke();
+  }
+}*/
+
+const circleRadius: number = 10;
+const circleTool: Tool = {
+  drawFunction: drawCircle,
+  held: false,
+};
+
+function drawCircle(
+  points: Point[],
+  context: CanvasRenderingContext2D,
+) {
+  for (let i = 0; i < points.length; ++i) {
+    context.beginPath();
+    context.ellipse(
+      points[i].x,
+      points[i].y,
+      circleRadius,
+      circleRadius,
+      0,
+      0,
+      2 * Math.PI,
+    );
     context.stroke();
   }
 }
@@ -54,7 +81,10 @@ const commandData: CommandData = {
   undoneCommands: [],
 };
 
-let activeCommand: Command | null = null;
+let activeCommand: Command = {
+  tool: circleTool,
+  points: [],
+};
 
 function redrawCanvas(
   context: CanvasRenderingContext2D,
@@ -84,41 +114,63 @@ function redoCommand(commandInfo: CommandData) {
   redrawCanvas(ctx, canvas, commandInfo);
 }
 
-function handleMouseDown(cursorData: CursorData) {
+function pushActiveCommand() {
   commandData.undoneCommands.splice(0, commandData.undoneCommands.length);
 
+  commandData.commands.push(activeCommand);
   activeCommand = {
-    tool: lineTool,
+    tool: activeCommand.tool,
     points: [],
   };
-  activeCommand.points.push({
+
+  redrawCanvas(ctx, canvas, commandData);
+}
+
+function handleMouseDown(cursorData: CursorData) {
+  cursorData.down = true;
+
+  activeCommand.points = [{
     x: cursorData.position.x,
     y: cursorData.position.y,
-  });
-  cursorData.down = true;
+  }];
+
+  if (!activeCommand.tool.held) {
+    pushActiveCommand();
+  }
 }
 
 function handleMouseMove(cursorData: CursorData) {
+  if (!activeCommand.tool.held) {
+    activeCommand.points = [{
+      x: cursorData.position.x,
+      y: cursorData.position.y,
+    }];
+
+    redrawCanvas(ctx, canvas, commandData, activeCommand);
+    return;
+  } else {
+    if (!cursorData.down) {
+      return;
+    }
+
+    activeCommand.points.push({
+      x: cursorData.position.x,
+      y: cursorData.position.y,
+    });
+    redrawCanvas(ctx, canvas, commandData, activeCommand);
+  }
+}
+
+function handleMouseUp(cursorData: CursorData) {
   if (!cursorData.down) {
     return;
   }
 
-  activeCommand!.points.push({
-    x: cursorData.position.x,
-    y: cursorData.position.y,
-  });
-
-  redrawCanvas(ctx, canvas, commandData, activeCommand);
-}
-
-function handleMouseUp(cursorData: CursorData) {
   cursorData.down = false;
-  if (activeCommand) {
-    commandData.commands.push(activeCommand);
-    activeCommand = null;
-  }
 
-  redrawCanvas(ctx, canvas, commandData);
+  if (activeCommand.tool.held) {
+    pushActiveCommand();
+  }
 }
 
 function updateCursorDataPosition(mouseEvent: MouseEvent) {
