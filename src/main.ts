@@ -19,74 +19,77 @@ interface CursorData {
   y: number;
   down: boolean;
 }
+const cursorData: CursorData = { x: 0, y: 0, down: false };
+
+interface Tool {
+  drawFunction: (points: Point[], context: CanvasRenderingContext2D) => void;
+}
+
+const lineTool = {
+  drawFunction: drawLine,
+};
+
+function drawLine(
+  points: Point[],
+  context: CanvasRenderingContext2D,
+) {
+  context.moveTo(points[0].x, points[0].y);
+  for (let i = 0; i < points.length - 1; ++i) {
+    context.beginPath();
+    context.moveTo(points[i].x, points[i].y);
+    context.lineTo(points[i + 1].x, points[i + 1].y);
+    context.stroke();
+  }
+}
 
 interface Point {
   x: number;
   y: number;
 }
 
-interface Line {
+interface Command {
+  tool: Tool;
   points: Point[];
 }
 
-interface LinesData {
-  lines: Line[];
-  undoneLines: Line[];
+interface CommandData {
+  commands: Command[];
+  undoneCommands: Command[];
 }
 
-const cursorData: CursorData = {
-  x: 0,
-  y: 0,
-  down: false,
+const commandData: CommandData = {
+  commands: [],
+  undoneCommands: [],
 };
 
-const linesData: LinesData = {
-  lines: [],
-  undoneLines: [],
-};
-
-let activeLine: Line | null = null;
-
-function drawLine(
-  context: CanvasRenderingContext2D,
-  line: Line,
-) {
-  context.moveTo(line.points[0].x, line.points[0].y);
-  for (let i = 0; i < line.points.length - 1; ++i) {
-    context.beginPath();
-    context.moveTo(line.points[i].x, line.points[i].y);
-    context.lineTo(line.points[i + 1].x, line.points[i + 1].y);
-    context.stroke();
-  }
-}
+let activeCommand: Command | null = null;
 
 function redrawCanvas(
   context: CanvasRenderingContext2D,
   canvasElement: HTMLCanvasElement,
-  linesInfo: LinesData,
-  activeLine: Line | null = null,
+  commandInfo: CommandData,
+  activeCommand: Command | null = null,
 ) {
   context.clearRect(0, 0, canvasElement.width, canvasElement.height);
-  for (const line of linesInfo.lines) {
-    drawLine(context, line);
+
+  for (const command of commandInfo.commands) {
+    command.tool.drawFunction(command.points, context);
   }
-  if (activeLine) {
-    drawLine(context, activeLine);
-  }
+  activeCommand?.tool.drawFunction(activeCommand.points, context);
 }
 
-function undoLine() {
-  if (linesData.lines.length > 0) {
-    linesData.undoneLines.push(linesData.lines.pop()!);
+function undoCommand(commandInfo: CommandData) {
+  if (commandInfo.commands.length > 0) {
+    commandInfo.undoneCommands.push(commandInfo.commands.pop()!);
   }
-  redrawCanvas(ctx, canvas, linesData);
+  redrawCanvas(ctx, canvas, commandInfo);
 }
 
-function redoLine() {
-  if (linesData.undoneLines.length > 0) {
-    linesData.lines.push(linesData.undoneLines.pop()!);
+function redoCommand(commandInfo: CommandData) {
+  if (commandInfo.undoneCommands.length > 0) {
+    commandInfo.commands.push(commandInfo.undoneCommands.pop()!);
   }
-  redrawCanvas(ctx, canvas, linesData);
+  redrawCanvas(ctx, canvas, commandInfo);
 }
 
 function setupButtons() {
@@ -102,25 +105,26 @@ function setupButtons() {
   app.append(redoButton);
 
   undoButton.addEventListener("click", () => {
-    undoLine();
+    undoCommand(commandData);
   });
 
   redoButton.addEventListener("click", () => {
-    redoLine();
+    redoCommand(commandData);
   });
 }
 
 function setupCanvas() {
   canvas.addEventListener("mousedown", (mouseEvent) => {
-    linesData.undoneLines.splice(0, linesData.undoneLines.length);
+    commandData.undoneCommands.splice(0, commandData.undoneCommands.length);
 
     cursorData.x = mouseEvent.offsetX;
     cursorData.y = mouseEvent.offsetY;
 
-    activeLine = {
+    activeCommand = {
+      tool: lineTool,
       points: [],
     };
-    activeLine.points.push({ x: cursorData.x, y: cursorData.y });
+    activeCommand.points.push({ x: cursorData.x, y: cursorData.y });
     cursorData.down = true;
   });
 
@@ -129,30 +133,30 @@ function setupCanvas() {
       cursorData.x = mouseEvent.offsetX;
       cursorData.y = mouseEvent.offsetY;
 
-      activeLine!.points.push({ x: cursorData.x, y: cursorData.y });
+      activeCommand!.points.push({ x: cursorData.x, y: cursorData.y });
 
-      redrawCanvas(ctx, canvas, linesData, activeLine);
+      redrawCanvas(ctx, canvas, commandData, activeCommand);
     }
   });
 
   canvas.addEventListener("mouseout", () => {
     cursorData.down = false;
-    if (activeLine) {
-      linesData.lines.push(activeLine);
-      activeLine = null;
+    if (activeCommand) {
+      commandData.commands.push(activeCommand);
+      activeCommand = null;
     }
 
-    redrawCanvas(ctx, canvas, linesData);
+    redrawCanvas(ctx, canvas, commandData);
   });
 
   canvas.addEventListener("mouseup", () => {
     cursorData.down = false;
-    if (activeLine) {
-      linesData.lines.push(activeLine);
-      activeLine = null;
+    if (activeCommand) {
+      commandData.commands.push(activeCommand);
+      activeCommand = null;
     }
 
-    redrawCanvas(ctx, canvas, linesData);
+    redrawCanvas(ctx, canvas, commandData);
   });
 }
 
