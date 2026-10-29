@@ -31,7 +31,7 @@ interface Line {
 
 interface LinesData {
   lines: Line[];
-  redoLines: Line[];
+  undoneLines: Line[];
 }
 
 const cursorData: CursorData = {
@@ -42,10 +42,10 @@ const cursorData: CursorData = {
 
 const linesData: LinesData = {
   lines: [],
-  redoLines: [],
+  undoneLines: [],
 };
 
-let currentLine: Line | null = null;
+let activeLine: Line | null = null;
 
 function drawLine(
   context: CanvasRenderingContext2D,
@@ -64,23 +64,27 @@ function redrawCanvas(
   context: CanvasRenderingContext2D,
   canvasElement: HTMLCanvasElement,
   linesInfo: LinesData,
+  activeLine: Line | null = null,
 ) {
   context.clearRect(0, 0, canvasElement.width, canvasElement.height);
   for (const line of linesInfo.lines) {
     drawLine(context, line);
   }
+  if (activeLine) {
+    drawLine(context, activeLine);
+  }
 }
 
 function undoLine() {
   if (linesData.lines.length > 0) {
-    linesData.redoLines.push(linesData.lines.pop()!);
+    linesData.undoneLines.push(linesData.lines.pop()!);
   }
   redrawCanvas(ctx, canvas, linesData);
 }
 
 function redoLine() {
-  if (linesData.redoLines.length > 0) {
-    linesData.lines.push(linesData.redoLines.pop()!);
+  if (linesData.undoneLines.length > 0) {
+    linesData.lines.push(linesData.undoneLines.pop()!);
   }
   redrawCanvas(ctx, canvas, linesData);
 }
@@ -107,41 +111,48 @@ function setupButtons() {
 }
 
 function setupCanvas() {
-  canvas.addEventListener("mousedown", (mouse) => {
-    linesData.redoLines.splice(
-      0,
-      linesData.redoLines.length,
-    );
-    cursorData.x = mouse.offsetX;
-    cursorData.y = mouse.offsetY;
-    currentLine = {
+  canvas.addEventListener("mousedown", (mouseEvent) => {
+    linesData.undoneLines.splice(0, linesData.undoneLines.length);
+
+    cursorData.x = mouseEvent.offsetX;
+    cursorData.y = mouseEvent.offsetY;
+
+    activeLine = {
       points: [],
     };
-    linesData.lines.push(currentLine);
-    currentLine.points.push({ x: cursorData.x, y: cursorData.y });
+    activeLine.points.push({ x: cursorData.x, y: cursorData.y });
     cursorData.down = true;
   });
 
-  canvas.addEventListener("mousemove", (mouse) => {
+  canvas.addEventListener("mousemove", (mouseEvent) => {
     if (cursorData.down) {
-      ctx.beginPath();
-      ctx.moveTo(cursorData.x, cursorData.y);
-      ctx.lineTo(mouse.offsetX, mouse.offsetY);
-      ctx.stroke();
-      cursorData.x = mouse.offsetX;
-      cursorData.y = mouse.offsetY;
-      currentLine!.points.push({ x: cursorData.x, y: cursorData.y });
+      cursorData.x = mouseEvent.offsetX;
+      cursorData.y = mouseEvent.offsetY;
+
+      activeLine!.points.push({ x: cursorData.x, y: cursorData.y });
+
+      redrawCanvas(ctx, canvas, linesData, activeLine);
     }
   });
 
   canvas.addEventListener("mouseout", () => {
     cursorData.down = false;
-    currentLine = null;
+    if (activeLine) {
+      linesData.lines.push(activeLine);
+      activeLine = null;
+    }
+
+    redrawCanvas(ctx, canvas, linesData);
   });
 
   canvas.addEventListener("mouseup", () => {
     cursorData.down = false;
-    currentLine = null;
+    if (activeLine) {
+      linesData.lines.push(activeLine);
+      activeLine = null;
+    }
+
+    redrawCanvas(ctx, canvas, linesData);
   });
 }
 
