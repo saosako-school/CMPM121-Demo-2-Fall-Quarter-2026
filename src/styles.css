@@ -1,5 +1,21 @@
+.container {
+  display: flex;
+  gap: 20px;
+  margin: 40px;
+}
+
+.toolButton {
+  width: 50px;
+  height: 50px;
+}
+
 #drawingCanvas {
   width: 500px;
   height: 500px;
   border: 2px solid black;
+}
+
+#toolContainer {
+  display: flex;
+  flex-direction: column;
 }
