@@ -1,17 +1,7 @@
 const app = document.querySelector<HTMLElement>("#app")!;
-
-const heading = document.createElement("h1");
-heading.textContent = "D2 project";
-
-const message = document.createElement("p");
-message.textContent = "Your project starts here.";
-
-const canvas = document.createElement("canvas");
+const canvas = document.querySelector<HTMLCanvasElement>("#drawingCanvas")!;
 canvas.width = 500;
 canvas.height = 500;
-canvas.style = "border: 2px solid black";
-app.append(canvas);
-
 const ctx = canvas.getContext("2d")!;
 
 interface Point {
@@ -134,6 +124,7 @@ function handleMouseUp(cursorData: CursorData) {
 function updateCursorDataPosition(mouseEvent: MouseEvent) {
   cursorData.position.x = mouseEvent.offsetX;
   cursorData.position.y = mouseEvent.offsetY;
+  //console.log("X: " + cursorData.position.x + "  Y: " + cursorData.position.y);
 }
 
 function setupButtons() {
@@ -177,6 +168,5 @@ function setupCanvas() {
   });
 }
 
-app.append(heading, message);
 setupButtons();
 setupCanvas();
