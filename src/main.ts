@@ -332,6 +332,73 @@ function updateCursorDataPosition(mouseEvent: MouseEvent) {
   //console.log("X: " + cursorData.position.x + "  Y: " + cursorData.position.y);
 }
 
+function makeCustomStickerTool(name: string, content: string): Tool {
+  return {
+    name: name,
+    column: 2,
+    held: false,
+
+    drawFunction: (
+      points: Point[],
+      context: CanvasRenderingContext2D,
+    ) => {
+      context.save();
+
+      context.font = "40px sans-serif";
+      context.textAlign = "center";
+      context.textBaseline = "middle";
+      context.fillStyle = "black";
+
+      for (const point of points) {
+        context.fillText(content, point.x, point.y);
+      }
+
+      context.restore();
+    },
+  };
+}
+
+function createToolButton(tool: Tool) {
+  const newButton = document.createElement("button");
+  newButton.textContent = tool.name;
+  newButton.className = "toolButton";
+
+  if (tool.column === 1) {
+    toolContainer1.append(newButton);
+  } else {
+    toolContainer2.append(newButton);
+  }
+
+  newButton.addEventListener("click", () => {
+    switchTool(tool);
+  });
+}
+
+function createCustomTool() {
+  const nameInput = prompt("Name your new tool:");
+
+  if (nameInput === null || nameInput.trim() === "") {
+    return;
+  }
+
+  const contentInput = prompt(
+    "Enter an emoji or short text for your sticker:",
+  );
+
+  if (contentInput === null || contentInput.trim() === "") {
+    return;
+  }
+
+  const newTool = makeCustomStickerTool(
+    nameInput.trim(),
+    contentInput.trim(),
+  );
+
+  tools.push(newTool);
+
+  createToolButton(newTool);
+}
+
 function setupButtons() {
   const buttonContainer = document.createElement("div");
   app.append(buttonContainer);
@@ -360,20 +427,16 @@ function setupButtons() {
     exportCanvas();
   });
 
+  const createToolButtonElement = document.createElement("button");
+  createToolButtonElement.textContent = "Create Custom Tool";
+  app.append(createToolButtonElement);
+
+  createToolButtonElement.addEventListener("click", () => {
+    createCustomTool();
+  });
+
   for (const tool of tools) {
-    const newButton = document.createElement("button");
-    newButton.textContent = tool.name;
-    newButton.className = "toolButton";
-
-    if (tool.column === 1) {
-      toolContainer1.append(newButton);
-    } else {
-      toolContainer2.append(newButton);
-    }
-
-    newButton.addEventListener("click", () => {
-      switchTool(tool);
-    });
+    createToolButton(tool);
   }
 }
 
