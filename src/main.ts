@@ -1,7 +1,10 @@
 const app = document.querySelector<HTMLElement>("#app")!;
 const canvas = document.querySelector<HTMLCanvasElement>("#drawingCanvas")!;
-const toolContainer = document.querySelector<HTMLDivElement>(
-  "#toolContainer",
+const toolContainer1 = document.querySelector<HTMLDivElement>(
+  "#toolContainer1",
+)!;
+const toolContainer2 = document.querySelector<HTMLDivElement>(
+  "#toolContainer2",
 )!;
 canvas.width = 500;
 canvas.height = 500;
@@ -23,11 +26,15 @@ const cursorData: CursorData = {
 
 interface Tool {
   drawFunction: (points: Point[], context: CanvasRenderingContext2D) => void;
+  name: string;
+  column: 1 | 2;
   held: boolean;
 }
 
 const lineTool: Tool = {
   drawFunction: drawLine,
+  name: "Line Tool",
+  column: 1,
   held: true,
 };
 
@@ -47,6 +54,8 @@ function drawLine(
 const circleRadius: number = 10;
 const circleTool: Tool = {
   drawFunction: drawCircle,
+  name: "Circle Tool",
+  column: 1,
   held: false,
 };
 
@@ -68,6 +77,8 @@ function drawCircle(
     context.stroke();
   }
 }
+
+const tools: Tool[] = [lineTool, circleTool];
 
 interface Command {
   tool: Tool;
@@ -208,23 +219,21 @@ function setupButtons() {
     redoCommand(commandData);
   });
 
-  const lineToolButton = document.createElement("button");
-  lineToolButton.textContent = "Line Tool";
-  lineToolButton.className = "toolButton";
-  toolContainer.append(lineToolButton);
+  for (const tool of tools) {
+    const newButton = document.createElement("button");
+    newButton.textContent = tool.name;
+    newButton.className = "toolButton";
 
-  lineToolButton.addEventListener("click", () => {
-    switchTool(lineTool);
-  });
+    if (tool.column === 1) {
+      toolContainer1.append(newButton);
+    } else {
+      toolContainer2.append(newButton);
+    }
 
-  const circleToolButton = document.createElement("button");
-  circleToolButton.textContent = "Circle Tool";
-  circleToolButton.className = "toolButton";
-  toolContainer.append(circleToolButton);
-
-  circleToolButton.addEventListener("click", () => {
-    switchTool(circleTool);
-  });
+    newButton.addEventListener("click", () => {
+      switchTool(tool);
+    });
+  }
 }
 
 function setupCanvas() {
