@@ -1,6 +1,9 @@
 // @deno-types="./asset-url.d.ts"
 import hospitalURL from "./assets/hospital.png?no-inline";
-
+// @deno-types="./asset-url.d.ts"
+import cafeURL from "./assets/Cafe.png?no-inline";
+// @deno-types="./asset-url.d.ts"
+import skyscraperURL from "./assets/City_Building.png?no-inline";
 const app = document.querySelector<HTMLElement>("#app")!;
 const canvas = document.querySelector<HTMLCanvasElement>("#drawingCanvas")!;
 
@@ -8,12 +11,21 @@ const hospitalImage = document.createElement("img");
 hospitalImage.src = hospitalURL;
 canvas.append(hospitalImage);
 
+const cafeImage = document.createElement("img");
+cafeImage.src = cafeURL;
+canvas.append(cafeImage);
+
+const skyscraperImage = document.createElement("img");
+skyscraperImage.src = skyscraperURL;
+canvas.append(skyscraperImage);
+
 const toolContainer = document.querySelector<HTMLDivElement>(
   "#toolContainer",
 )!;
 canvas.width = 500;
 canvas.height = 500;
 const ctx = canvas.getContext("2d")!;
+ctx.imageSmoothingEnabled = false;
 
 interface Point {
   x: number;
@@ -68,6 +80,46 @@ function drawHospitalSticker(
       points[i].y - 49.35,
       131,
       98.5,
+    );
+  }
+}
+
+const cafeStickerTool: Tool = {
+  drawFunction: drawCafeSticker,
+  held: false,
+};
+
+function drawCafeSticker(
+  points: Point[],
+  context: CanvasRenderingContext2D,
+) {
+  for (let i = 0; i < points.length; ++i) {
+    context.drawImage(
+      cafeImage,
+      points[i].x - 66.25,
+      points[i].y - 50.5,
+      132.5,
+      101,
+    );
+  }
+}
+
+const skyscraperStickerTool: Tool = {
+  drawFunction: drawSkyscraperSticker,
+  held: false,
+};
+
+function drawSkyscraperSticker(
+  points: Point[],
+  context: CanvasRenderingContext2D,
+) {
+  for (let i = 0; i < points.length; ++i) {
+    context.drawImage(
+      skyscraperImage,
+      points[i].x - 33.375,
+      points[i].y - 49,
+      66.75,
+      98,
     );
   }
 }
@@ -261,6 +313,24 @@ function setupButtons() {
 
   hospitalStickerButton.addEventListener("click", () => {
     switchTool(hospitalStickerTool);
+  });
+
+  const cafeStickerButton = document.createElement("button");
+  cafeStickerButton.textContent = "Cafe Sticker";
+  cafeStickerButton.className = "toolButton";
+  toolContainer.append(cafeStickerButton);
+
+  cafeStickerButton.addEventListener("click", () => {
+    switchTool(cafeStickerTool);
+  });
+
+  const skyscraperStickerButton = document.createElement("button");
+  skyscraperStickerButton.textContent = "Skyscraper Sticker";
+  skyscraperStickerButton.className = "toolButton";
+  toolContainer.append(skyscraperStickerButton);
+
+  skyscraperStickerButton.addEventListener("click", () => {
+    switchTool(skyscraperStickerTool);
   });
 }
 
