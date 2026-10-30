@@ -1,13 +1,15 @@
 const app = document.querySelector<HTMLElement>("#app")!;
-const canvas = document.querySelector<HTMLCanvasElement>("#drawingCanvas")!;
 const toolContainer1 = document.querySelector<HTMLDivElement>(
   "#toolContainer1",
 )!;
 const toolContainer2 = document.querySelector<HTMLDivElement>(
   "#toolContainer2",
 )!;
-canvas.width = 500;
-canvas.height = 500;
+
+const canvasSize: number = 500;
+const canvas = document.querySelector<HTMLCanvasElement>("#drawingCanvas")!;
+canvas.width = canvasSize;
+canvas.height = canvasSize;
 const ctx = canvas.getContext("2d")!;
 
 interface Point {
@@ -105,13 +107,53 @@ function redrawCanvas(
   canvasElement: HTMLCanvasElement,
   commandInfo: CommandData,
   activeCommand: Command | null = null,
+  clear: boolean = true,
 ) {
-  context.clearRect(0, 0, canvasElement.width, canvasElement.height);
+  if (clear) {
+    context.clearRect(0, 0, canvasElement.width, canvasElement.height);
+  }
 
   for (const command of commandInfo.commands) {
     command.tool.drawFunction(command.points, context);
   }
   activeCommand?.tool.drawFunction(activeCommand.points, context);
+}
+
+const canvasExportUpscale: number = 2;
+function exportCanvas() {
+  const canvas = document.createElement("canvas");
+  canvas.width = canvasSize * canvasExportUpscale;
+  canvas.height = canvasSize * canvasExportUpscale;
+
+  const context = canvas.getContext("2d");
+  if (!context) {
+    return;
+  }
+
+  context.scale(canvasExportUpscale, canvasExportUpscale);
+  context.save();
+  context.fillStyle = "white";
+  context.fillRect(
+    0,
+    0,
+    canvasSize * canvasExportUpscale,
+    canvasSize * canvasExportUpscale,
+  );
+  context.restore();
+  redrawCanvas(context, canvas, commandData, null, false);
+
+  canvas.toBlob((blob) => {
+    if (!blob) {
+      return;
+    }
+
+    const tempLink = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    tempLink.href = url;
+    tempLink.download = "CanvasExport.png";
+    tempLink.click();
+    URL.revokeObjectURL(url);
+  });
 }
 
 function undoCommand(commandInfo: CommandData) {
@@ -207,16 +249,24 @@ function setupButtons() {
   undoButton.textContent = "Undo";
   app.append(undoButton);
 
-  const redoButton = document.createElement("button");
-  redoButton.textContent = "Redo";
-  app.append(redoButton);
-
   undoButton.addEventListener("click", () => {
     undoCommand(commandData);
   });
 
+  const redoButton = document.createElement("button");
+  redoButton.textContent = "Redo";
+  app.append(redoButton);
+
   redoButton.addEventListener("click", () => {
     redoCommand(commandData);
+  });
+
+  const exportButton = document.createElement("button");
+  exportButton.textContent = "Export";
+  app.append(exportButton);
+
+  exportButton.addEventListener("click", () => {
+    exportCanvas();
   });
 
   for (const tool of tools) {
