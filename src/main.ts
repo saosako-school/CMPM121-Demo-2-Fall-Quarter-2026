@@ -1,3 +1,9 @@
+// @deno-types="./asset-url.d.ts"
+import hospitalURL from "./assets/hospital.png?no-inline";
+// @deno-types="./asset-url.d.ts"
+import cafeURL from "./assets/Cafe.png?no-inline";
+// @deno-types="./asset-url.d.ts"
+import skyscraperURL from "./assets/City_Building.png?no-inline";
 const app = document.querySelector<HTMLElement>("#app")!;
 const toolContainer1 = document.querySelector<HTMLDivElement>(
   "#toolContainer1",
@@ -11,6 +17,19 @@ const canvas = document.querySelector<HTMLCanvasElement>("#drawingCanvas")!;
 canvas.width = canvasSize;
 canvas.height = canvasSize;
 const ctx = canvas.getContext("2d")!;
+ctx.imageSmoothingEnabled = false;
+
+const hospitalImage = document.createElement("img");
+hospitalImage.src = hospitalURL;
+canvas.append(hospitalImage);
+
+const cafeImage = document.createElement("img");
+cafeImage.src = cafeURL;
+canvas.append(cafeImage);
+
+const skyscraperImage = document.createElement("img");
+skyscraperImage.src = skyscraperURL;
+canvas.append(skyscraperImage);
 
 interface Point {
   x: number;
@@ -53,6 +72,72 @@ function drawLine(
   }
 }
 
+const hospitalStickerTool: Tool = {
+  drawFunction: drawHospitalSticker,
+  name: "Hospital Sticker",
+  column: 1,
+  held: false,
+};
+
+function drawHospitalSticker(
+  points: Point[],
+  context: CanvasRenderingContext2D,
+) {
+  for (let i = 0; i < points.length; ++i) {
+    context.drawImage(
+      hospitalImage,
+      points[i].x - 65.5,
+      points[i].y - 49.35,
+      131,
+      98.5,
+    );
+  }
+}
+
+const cafeStickerTool: Tool = {
+  drawFunction: drawCafeSticker,
+  name: "Cafe Sticker",
+  column: 1,
+  held: false,
+};
+
+function drawCafeSticker(
+  points: Point[],
+  context: CanvasRenderingContext2D,
+) {
+  for (let i = 0; i < points.length; ++i) {
+    context.drawImage(
+      cafeImage,
+      points[i].x - 66.25,
+      points[i].y - 50.5,
+      132.5,
+      101,
+    );
+  }
+}
+
+const skyscraperStickerTool: Tool = {
+  drawFunction: drawSkyscraperSticker,
+  name: "Skyscraper Sticker",
+  column: 1,
+  held: false,
+};
+
+function drawSkyscraperSticker(
+  points: Point[],
+  context: CanvasRenderingContext2D,
+) {
+  for (let i = 0; i < points.length; ++i) {
+    context.drawImage(
+      skyscraperImage,
+      points[i].x - 33.375,
+      points[i].y - 49,
+      66.75,
+      98,
+    );
+  }
+}
+
 const circleRadius: number = 10;
 const circleTool: Tool = {
   drawFunction: drawCircle,
@@ -80,7 +165,13 @@ function drawCircle(
   }
 }
 
-const tools: Tool[] = [lineTool, circleTool];
+const tools: Tool[] = [
+  lineTool,
+  hospitalStickerTool,
+  cafeStickerTool,
+  skyscraperStickerTool,
+  circleTool,
+];
 
 interface Command {
   tool: Tool;
