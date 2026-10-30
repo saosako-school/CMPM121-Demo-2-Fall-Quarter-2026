@@ -1,5 +1,8 @@
 const app = document.querySelector<HTMLElement>("#app")!;
 const canvas = document.querySelector<HTMLCanvasElement>("#drawingCanvas")!;
+const toolContainer = document.querySelector<HTMLDivElement>(
+  "#toolContainer",
+)!;
 canvas.width = 500;
 canvas.height = 500;
 const ctx = canvas.getContext("2d")!;
@@ -20,10 +23,12 @@ const cursorData: CursorData = {
 
 interface Tool {
   drawFunction: (points: Point[], context: CanvasRenderingContext2D) => void;
+  held: boolean;
 }
 
-const lineTool = {
+const lineTool: Tool = {
   drawFunction: drawLine,
+  held: true,
 };
 
 function drawLine(
@@ -35,6 +40,31 @@ function drawLine(
     context.beginPath();
     context.moveTo(points[i].x, points[i].y);
     context.lineTo(points[i + 1].x, points[i + 1].y);
+    context.stroke();
+  }
+}
+
+const circleRadius: number = 10;
+const circleTool: Tool = {
+  drawFunction: drawCircle,
+  held: false,
+};
+
+function drawCircle(
+  points: Point[],
+  context: CanvasRenderingContext2D,
+) {
+  for (let i = 0; i < points.length; ++i) {
+    context.beginPath();
+    context.ellipse(
+      points[i].x,
+      points[i].y,
+      circleRadius,
+      circleRadius,
+      0,
+      0,
+      2 * Math.PI,
+    );
     context.stroke();
   }
 }
@@ -54,7 +84,10 @@ const commandData: CommandData = {
   undoneCommands: [],
 };
 
-let activeCommand: Command | null = null;
+let activeCommand: Command = {
+  tool: circleTool,
+  points: [],
+};
 
 function redrawCanvas(
   context: CanvasRenderingContext2D,
@@ -84,41 +117,69 @@ function redoCommand(commandInfo: CommandData) {
   redrawCanvas(ctx, canvas, commandInfo);
 }
 
-function handleMouseDown(cursorData: CursorData) {
+function pushActiveCommand() {
   commandData.undoneCommands.splice(0, commandData.undoneCommands.length);
 
+  commandData.commands.push(activeCommand);
   activeCommand = {
-    tool: lineTool,
+    tool: activeCommand.tool,
     points: [],
   };
-  activeCommand.points.push({
+
+  redrawCanvas(ctx, canvas, commandData);
+}
+
+function switchTool(tool: Tool) {
+  activeCommand.tool = tool;
+  activeCommand.points = [];
+  redrawCanvas(ctx, canvas, commandData);
+}
+
+function handleMouseDown(cursorData: CursorData) {
+  cursorData.down = true;
+
+  activeCommand.points = [{
     x: cursorData.position.x,
     y: cursorData.position.y,
-  });
-  cursorData.down = true;
+  }];
+
+  if (!activeCommand.tool.held) {
+    pushActiveCommand();
+  }
 }
 
 function handleMouseMove(cursorData: CursorData) {
+  if (!activeCommand.tool.held) {
+    activeCommand.points = [{
+      x: cursorData.position.x,
+      y: cursorData.position.y,
+    }];
+
+    redrawCanvas(ctx, canvas, commandData, activeCommand);
+    return;
+  } else {
+    if (!cursorData.down) {
+      return;
+    }
+
+    activeCommand.points.push({
+      x: cursorData.position.x,
+      y: cursorData.position.y,
+    });
+    redrawCanvas(ctx, canvas, commandData, activeCommand);
+  }
+}
+
+function handleMouseUp(cursorData: CursorData) {
   if (!cursorData.down) {
     return;
   }
 
-  activeCommand!.points.push({
-    x: cursorData.position.x,
-    y: cursorData.position.y,
-  });
-
-  redrawCanvas(ctx, canvas, commandData, activeCommand);
-}
-
-function handleMouseUp(cursorData: CursorData) {
   cursorData.down = false;
-  if (activeCommand) {
-    commandData.commands.push(activeCommand);
-    activeCommand = null;
-  }
 
-  redrawCanvas(ctx, canvas, commandData);
+  if (activeCommand.tool.held) {
+    pushActiveCommand();
+  }
 }
 
 function updateCursorDataPosition(mouseEvent: MouseEvent) {
@@ -132,11 +193,11 @@ function setupButtons() {
   app.append(buttonContainer);
 
   const undoButton = document.createElement("button");
-  undoButton.textContent = "undo";
+  undoButton.textContent = "Undo";
   app.append(undoButton);
 
   const redoButton = document.createElement("button");
-  redoButton.textContent = "redo";
+  redoButton.textContent = "Redo";
   app.append(redoButton);
 
   undoButton.addEventListener("click", () => {
@@ -145,6 +206,24 @@ function setupButtons() {
 
   redoButton.addEventListener("click", () => {
     redoCommand(commandData);
+  });
+
+  const lineToolButton = document.createElement("button");
+  lineToolButton.textContent = "Line Tool";
+  lineToolButton.className = "toolButton";
+  toolContainer.append(lineToolButton);
+
+  lineToolButton.addEventListener("click", () => {
+    switchTool(lineTool);
+  });
+
+  const circleToolButton = document.createElement("button");
+  circleToolButton.textContent = "Circle Tool";
+  circleToolButton.className = "toolButton";
+  toolContainer.append(circleToolButton);
+
+  circleToolButton.addEventListener("click", () => {
+    switchTool(circleTool);
   });
 }
 
@@ -160,6 +239,11 @@ function setupCanvas() {
   });
 
   canvas.addEventListener("mouseout", () => {
+    if (!activeCommand.tool.held) {
+      activeCommand.points = [];
+      redrawCanvas(ctx, canvas, commandData, activeCommand);
+    }
+
     handleMouseUp(cursorData);
   });
 
