@@ -1,7 +1,7 @@
 import { Point } from "./main.ts";
 
 // @deno-types="./asset-url.d.ts"
-import grassURL from "./assets/grass.png?no-inline";
+import grassURL from "./assets/Grass.png?no-inline";
 // @deno-types="./asset-url.d.ts"
 import hospitalURL from "./assets/hospital.png?no-inline";
 // @deno-types="./asset-url.d.ts"
