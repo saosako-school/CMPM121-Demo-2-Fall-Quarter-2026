@@ -17,7 +17,6 @@ const canvas = document.querySelector<HTMLCanvasElement>("#drawingCanvas")!;
 canvas.width = canvasSize;
 canvas.height = canvasSize;
 const ctx = canvas.getContext("2d")!;
-ctx.imageSmoothingEnabled = false;
 
 const hospitalImage = document.createElement("img");
 hospitalImage.src = hospitalURL;
@@ -52,24 +51,88 @@ interface Tool {
   held: boolean;
 }
 
-const lineTool: Tool = {
-  drawFunction: drawLine,
-  name: "Line Tool",
+const grassTool: Tool = {
+  drawFunction: drawGrass,
+  name: "Grass Tool",
   column: 1,
   held: true,
 };
 
+function drawGrass(points: Point[], context: CanvasRenderingContext2D) {
+  context.save();
+  context.fillStyle = "lime";
+  context.lineWidth = 0;
+  context.fillRect(
+    Math.min(points[0].x, points[points.length - 1].x),
+    Math.min(points[0].y, points[points.length - 1].y),
+    Math.abs(points[0].x - points[points.length - 1].x),
+    Math.abs(points[0].y - points[points.length - 1].y),
+  );
+  context.restore();
+}
+
 function drawLine(
   points: Point[],
   context: CanvasRenderingContext2D,
+  strokeWidth: number,
+  color: string | CanvasGradient | CanvasPattern,
 ) {
+  context.save();
+
+  context.lineWidth = strokeWidth;
+  context.strokeStyle = color;
+
+  context.beginPath();
   context.moveTo(points[0].x, points[0].y);
-  for (let i = 0; i < points.length - 1; ++i) {
-    context.beginPath();
-    context.moveTo(points[i].x, points[i].y);
-    context.lineTo(points[i + 1].x, points[i + 1].y);
+  for (let i = 1; i < points.length; ++i) {
+    context.lineTo(points[i].x, points[i].y);
     context.stroke();
   }
+
+  context.restore();
+}
+
+const roadTool: Tool = {
+  drawFunction: drawRoad,
+  name: "Road Tool",
+  column: 1,
+  held: true,
+};
+
+function makeSparsePointsCopy(points: Point[], minDistance: number): Point[] {
+  const pointsCopy: Point[] = [];
+  let previousPoint: Point = points[0];
+  for (const point of points) {
+    if (pointsCopy.length === 0) {
+      pointsCopy.push(point);
+      continue;
+    }
+
+    const distanceToLastPoint = Math.sqrt(
+      (point.x - previousPoint.x) ** 2 + (point.y - previousPoint.y) ** 2,
+    );
+    if (distanceToLastPoint > minDistance) {
+      pointsCopy.push(point);
+      previousPoint = point;
+    }
+  }
+  return pointsCopy;
+}
+
+function drawRoad(
+  points: Point[],
+  context: CanvasRenderingContext2D,
+) {
+  const sparsePoints: Point[] = makeSparsePointsCopy(points, 10);
+
+  context.save();
+
+  drawLine(sparsePoints, context, 20, "black");
+
+  context.setLineDash([8, 20]);
+  drawLine(sparsePoints, context, 4, "white");
+
+  context.restore();
 }
 
 const hospitalStickerTool: Tool = {
@@ -138,39 +201,12 @@ function drawSkyscraperSticker(
   }
 }
 
-const circleRadius: number = 10;
-const circleTool: Tool = {
-  drawFunction: drawCircle,
-  name: "Circle Tool",
-  column: 1,
-  held: false,
-};
-
-function drawCircle(
-  points: Point[],
-  context: CanvasRenderingContext2D,
-) {
-  for (let i = 0; i < points.length; ++i) {
-    context.beginPath();
-    context.ellipse(
-      points[i].x,
-      points[i].y,
-      circleRadius,
-      circleRadius,
-      0,
-      0,
-      2 * Math.PI,
-    );
-    context.stroke();
-  }
-}
-
 const tools: Tool[] = [
-  lineTool,
+  grassTool,
+  roadTool,
   hospitalStickerTool,
   cafeStickerTool,
   skyscraperStickerTool,
-  circleTool,
 ];
 
 interface Command {
@@ -189,7 +225,7 @@ const commandData: CommandData = {
 };
 
 let activeCommand: Command = {
-  tool: circleTool,
+  tool: roadTool,
   points: [],
 };
 
@@ -220,6 +256,7 @@ function exportCanvas() {
   if (!context) {
     return;
   }
+  applyDefaultCanvasSettings(context);
 
   context.scale(canvasExportUpscale, canvasExportUpscale);
   context.save();
@@ -465,5 +502,11 @@ function setupCanvas() {
   });
 }
 
+function applyDefaultCanvasSettings(context: CanvasRenderingContext2D) {
+  context.imageSmoothingEnabled = false;
+  context.lineJoin = "round";
+}
+
 setupButtons();
+applyDefaultCanvasSettings(ctx);
 setupCanvas();
