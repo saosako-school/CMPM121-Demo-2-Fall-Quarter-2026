@@ -1,5 +1,13 @@
+// @deno-types="./asset-url.d.ts"
+import hospitalURL from "./assets/hospital.png?no-inline";
+
 const app = document.querySelector<HTMLElement>("#app")!;
 const canvas = document.querySelector<HTMLCanvasElement>("#drawingCanvas")!;
+
+const hospitalImage = document.createElement("img");
+hospitalImage.src = hospitalURL;
+canvas.append(hospitalImage);
+
 const toolContainer = document.querySelector<HTMLDivElement>(
   "#toolContainer",
 )!;
@@ -41,6 +49,26 @@ function drawLine(
     context.moveTo(points[i].x, points[i].y);
     context.lineTo(points[i + 1].x, points[i + 1].y);
     context.stroke();
+  }
+}
+
+const hospitalStickerTool: Tool = {
+  drawFunction: drawHospitalSticker,
+  held: false,
+};
+
+function drawHospitalSticker(
+  points: Point[],
+  context: CanvasRenderingContext2D,
+) {
+  for (let i = 0; i < points.length; ++i) {
+    context.drawImage(
+      hospitalImage,
+      points[i].x - 65.5,
+      points[i].y - 49.35,
+      131,
+      98.5,
+    );
   }
 }
 
@@ -224,6 +252,15 @@ function setupButtons() {
 
   circleToolButton.addEventListener("click", () => {
     switchTool(circleTool);
+  });
+
+  const hospitalStickerButton = document.createElement("button");
+  hospitalStickerButton.textContent = "Hospital Sticker";
+  hospitalStickerButton.className = "toolButton";
+  toolContainer.append(hospitalStickerButton);
+
+  hospitalStickerButton.addEventListener("click", () => {
+    switchTool(hospitalStickerTool);
   });
 }
 
